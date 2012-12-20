@@ -6,7 +6,6 @@ import pymongo
 from pymongo import MongoClient
 
 
-#helloagainfgfgnbcfnhkytuytud
 class word_pos_tag:
 
 	def __init__(self):
