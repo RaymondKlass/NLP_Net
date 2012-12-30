@@ -12,7 +12,6 @@ class sent_split:
 		self.bootstrapSentSplitter()
 	
 	def saveSents(self):
-		print(self.document['processed'])
 		obj_ids = self.sentCollection.insert([{"sentence" : s, "processed":0, "document_id":self.document['_id']} for s in self.sents]) # Code to bulk insert every sentence of corpus...
 		print(str(len(obj_ids)) + ' Sentence Insertions Made')
 	
@@ -38,8 +37,8 @@ class sent_split:
 	def openDBClient(self):
 		self.connection = MongoClient()
 		
-		sentDB = self.connection.sentenceDB
-		self.sentCollection = sentDB.testSentences
+		sentDB = self.connection.sentDB
+		self.sentCollection = sentDB.testSents
 		
 		docDB = self.connection.docDB
 		self.docCollection = docDB.testDocs
