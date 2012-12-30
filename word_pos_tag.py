@@ -17,10 +17,13 @@ class word_pos_tag:
 		#obj_ids = self.collection.insert([{"sentence" : s, "processed":0} for s in self.sents]) # Code to bulk insert every sentence of corpus...
 		#print(str(len(obj_ids)) + ' Sentence Insertions Made')
 		
-		obj_id = self.tokenCollection.insert({"tokens": self.tokenized, "processed":0})
+		obj_id = self.tokenCollection.insert({"tokens": self.tokenized, "processed":0, "sent_id": self.sent['_id'], "document_id":self.sent['document_id']})
 		#print(obj_id)
 		
 		self.sentCollection.update({'_id':self.sent['_id']}, { "$set": {'processed':1}})
+		
+		self.docCollection.update({'_id':self.sent['document_id']}, { "$push":{'tokens':obj_id}})
+		
 		self.counter += 1
 	
 	def tokenizeNextSentence(self):
@@ -41,11 +44,14 @@ class word_pos_tag:
 	
 	def openDBClient(self):
 		self.connection = MongoClient()
-		sentDB = self.connection.sentenceDB
-		self.sentCollection = sentDB.testSentences
+		sentDB = self.connection.sentDB
+		self.sentCollection = sentDB.testSents
 		
 		tokenDB = self.connection.tokenDB
-		self.tokenCollection = tokenDB.testSentences
+		self.tokenCollection = tokenDB.testTokens
+		
+		docDB = self.connection.docDB
+		self.docCollection = docDB.testDocs
 	
 	def getCount(self):
 		print(str(self.counter) + ' objects inserted')
@@ -54,6 +60,6 @@ class word_pos_tag:
 	
 
 tokenizer = word_pos_tag() # this is the expensive task - once the tokenizer and POS tagger are loaded into memory, the operation is quite fast...
-for i in range(1000):
+for i in range(100):
 	tokenizer.tokenizeNextSentence()
 tokenizer.getCount()
