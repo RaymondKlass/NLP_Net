@@ -9,14 +9,31 @@ class relation_extractor:
 	def __init__(self):
 		self.openDBClient()
 		self.bootstrapAdditionalClasses()
-
+	
+	
+	def insertRelations(self):
+		
+		for r in self.relations:
+			for g in [{'words':[a,b], 'sent_id':self.tokens['sent_id'], 'document_id' : self.tokens['document_id'], 'relation':r['relation'][0][0]} for a in r['prevNP'] for b in r['nextNP']]:
+				obj_id = self.relationCollection.insert(g)
+				
+				#nObject_id = self.relationGroupCollection.update({'words':{'$in':[[g['words'][0], g['words'][1]], [g['words'][1], g['words'][0]]]}}, 
+				#{'$push':{'relation_id':obj_id }, '$set':{'words':g['words']}}, True)# alternate way to do this...
+				
+				self.relationGroupCollection.update({'words':[g['words'][0], g['words'][1]], 'words':[g['words'][1], g['words'][0]]}, {'$push':{'relation_id':obj_id }}, True) # update or insert
+				print(self.wordCollection.update({'word':g['words'][0]}, {'$inc':{'link.'+g['words'][1]+"'": 1 }}, True))
+				print(self.wordCollection.update({'word':g['words'][1]}, {'$inc':{'link.'+g['words'][0]+"'": 1 }}, True))
+				
+				
+				
 			
 	def processNextTokens(self):
 		self.loadTokens()		
-		print(self.tokens)
-		self.relationBounds = self.relationIdentify.returnRelationshipBounds(self.tokens['tokens'])
-		self.nounPairIdentifier.returnNounPairsExtracted(self.relationBounds, self.tokens['tokens'])
+		#print(self.tokens)
+		relationBounds = self.relationIdentify.returnRelationshipBounds(self.tokens['tokens'])
+		self.relations = self.nounPairIdentifier.returnNounPairsExtracted(relationBounds, self.tokens['tokens'])
 		# -- remove lie below after initial testing...
+		self.insertRelations()
 		self.tokenCollection.update({'_id':self.tokens['_id']}, { "$set": {'processed':1}}) #### -- Check this line - then also start work on the document entry module...
 			
 	def loadTokens(self):
@@ -30,6 +47,9 @@ class relation_extractor:
 	
 	def openDBClient(self):
 		self.connection = MongoClient()
+		
+		docDB = self.connection.docDB
+		self.docCollection = docDB.testDocs
 		
 		tokenDB = self.connection.tokenDB
 		self.tokenCollection = tokenDB.testTokens
@@ -181,8 +201,7 @@ class noun_pair_identifier:
 			if r['prevNP'] and r['nextNP'] and r['relation']:
 				relations.append(r)
 	
-		for r in relations:
-			print('prev: ' +str(r['prevNP']) + ' -> next: ' +str(r['nextNP']) + ' additional: ' +str(r['addNP']))
+		return relations
 
 	
 	def bootstrapSLists(self):
@@ -195,7 +214,8 @@ class noun_pair_identifier:
 
 
 relationExtract = relation_extractor()
-relationExtract.processNextTokens()
+for i in range(1000):
+	relationExtract.processNextTokens()
 
 
 
