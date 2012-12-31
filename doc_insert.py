@@ -1,4 +1,4 @@
-docDBimport pymongo
+import pymongo
 from pymongo import MongoClient
 
 
