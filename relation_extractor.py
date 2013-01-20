@@ -6,10 +6,16 @@ from pymongo import MongoClient
 
 class relation_extractor:
 
-	def __init__(self):
+	def __init__(self, isAnalyticsOn = False):
 		self.openDBClient()
 		self.bootstrapAdditionalClasses()
+		self.isAnalyticsOn = isAnalyticsOn; # turn the analytics off by defualt
 	
+	def turnAnalyticsOn(self): # turn anaylics mode on
+		self.isAnalyticsOn = True;
+		
+	def turnAnalyticsOff(self): # turn analytics mode off
+		self.isAnalyticsOn = False;
 	
 	def insertRelations(self):
 		
@@ -21,9 +27,15 @@ class relation_extractor:
 				#{'$push':{'relation_id':obj_id }, '$set':{'words':g['words']}}, True)# alternate way to do this...
 				
 				self.relationGroupCollection.update({'words':[g['words'][0], g['words'][1]], 'words':[g['words'][1], g['words'][0]]}, {'$push':{'relation_id':obj_id }}, True) # update or insert
-				print(self.wordCollection.update({'word':g['words'][0]}, {'$inc':{'link.'+g['words'][1]+"'": 1 }}, True))
-				print(self.wordCollection.update({'word':g['words'][1]}, {'$inc':{'link.'+g['words'][0]+"'": 1 }}, True))
+				self.wordCollection.update({'word':g['words'][0]}, {'$inc':{'link.'+g['words'][1]+"'": 1 }}, True)
 				
+				if self.isAnalyticsOn: # links to a simple analytics mode. 
+					print(self.wordCollection.update({'word':g['words'][1]}, {'$inc':{'link.'+g['words'][0]+"'": 1 }}, True))
+					
+					obj = self.relationGroupCollection.find_one({'words':[g['words'][0], g['words'][1]]})
+					print(obj)
+					print(self.wordCollection.find_one({'word':g['words'][0]}))
+					print(self.wordCollection.find_one({'word':g['words'][1]}))
 				
 				
 			
@@ -213,10 +225,10 @@ class noun_pair_identifier:
 ###############################################################################################################
 
 
-relationExtract = relation_extractor()
-for i in range(1000):
+relationExtract = relation_extractor(True)
+for i in range(1):
 	relationExtract.processNextTokens()
-
+print('done')
 
 
 

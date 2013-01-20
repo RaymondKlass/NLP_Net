@@ -20,7 +20,7 @@ class sent_split:
 	
 	
 	
-	def splitText(self, text):
+	def splitText(self):
 		# this is where you would dynamically pull the text from the repository...  Maybe use amazon S3 for text...
 		self.document = self.docCollection.find_one({"processed":0})
 		if self.document != None:
@@ -45,4 +45,4 @@ class sent_split:
 	
 
 splitter = sent_split()
-splitter.splitText('../sample_Huckleberry_Finn.txt')
+splitter.splitText()
