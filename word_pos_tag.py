@@ -60,6 +60,6 @@ class word_pos_tag:
 	
 
 tokenizer = word_pos_tag() # this is the expensive task - once the tokenizer and POS tagger are loaded into memory, the operation is quite fast...
-for i in range(1000):
+for i in range(10):
 	tokenizer.tokenizeNextSentence()
 tokenizer.getCount()
