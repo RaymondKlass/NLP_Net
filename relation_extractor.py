@@ -20,37 +20,43 @@ class relation_extractor:
 	def insertRelations(self):
 		
 		for r in self.relations:
-			for g in [{'words':[a,b], 'sent_id':self.tokens['sent_id'], 'document_id' : self.tokens['document_id'], 'relation':r['relation'][0][0]} for a in r['prevNP'] for b in r['nextNP']]:
-				obj_id = self.relationCollection.insert(g)
+			#print r
+			#######  This only tkes the first word of the relationship - relationships not being properly handled...  See the relation[0][0] below..
+			for g in [{'words':[a,b], 'sent_id':self.token['sent_id'], 'document_id' : self.token['document_id'], 'relation':r['relation'][0][0]} for a in r['prevNP'] for b in r['nextNP']]:
+				#obj_id = self.relationCollection.insert(g)
+				#print(g)
 				
 				#nObject_id = self.relationGroupCollection.update({'words':{'$in':[[g['words'][0], g['words'][1]], [g['words'][1], g['words'][0]]]}}, 
 				#{'$push':{'relation_id':obj_id }, '$set':{'words':g['words']}}, True)# alternate way to do this...
 				
-				self.relationGroupCollection.update({'words':[g['words'][0], g['words'][1]], 'words':[g['words'][1], g['words'][0]]}, {'$push':{'relation_id':obj_id }}, True) # update or insert
-				self.wordCollection.update({'word':g['words'][0]}, {'$inc':{'link.'+g['words'][1]+"'": 1 }}, True)
+				#self.relationGroupCollection.update({'words':[g['words'][0], g['words'][1]], 'words':[g['words'][1], g['words'][0]]}, {'$push':{'relation_id':obj_id }}, True) # update or insert
+				self.wordCollection.update({'word':g['words'][0].lower()}, {'$inc':{'link.'+g['words'][1].lower(): 1 }}, True)
+				self.wordCollection.update({'word':g['words'][1].lower()}, {'$inc':{'link.'+g['words'][0].lower(): 1 }}, True)
 				
-				if self.isAnalyticsOn: # links to a simple analytics mode. 
-					print(self.wordCollection.update({'word':g['words'][1]}, {'$inc':{'link.'+g['words'][0]+"'": 1 }}, True))
-					
-					obj = self.relationGroupCollection.find_one({'words':[g['words'][0], g['words'][1]]})
-					print(obj)
-					print(self.wordCollection.find_one({'word':g['words'][0]}))
-					print(self.wordCollection.find_one({'word':g['words'][1]}))
+				print(self.wordCollection.find_one({'word':g['words'][0].lower()}))
+				
+				if self.isAnalyticsOn: # links to a simple analytics mode.
+					print(self.wordCollection.find_one({'word':g['words'][0].lower()}))
+					print(self.wordCollection.find_one({'word':g['words'][1].lower()}))
 				
 				
 			
 	def processNextTokens(self):
-		self.loadTokens()		
-		#print(self.tokens)
-		relationBounds = self.relationIdentify.returnRelationshipBounds(self.tokens['tokens'])
-		self.relations = self.nounPairIdentifier.returnNounPairsExtracted(relationBounds, self.tokens['tokens'])
-		# -- remove lie below after initial testing...
-		self.insertRelations()
-		self.tokenCollection.update({'_id':self.tokens['_id']}, { "$set": {'processed':1}}) #### -- Check this line - then also start work on the document entry module...
-			
-	def loadTokens(self):
-		self.tokens = self.tokenCollection.find_one({"processed":0})
+		self.seedTokens()
+
+		for token in self.tokenArray:
+			#self.count = self.count + 1
+			self.token = token		
+			#print(self.tokens)
+			relationBounds = self.relationIdentify.returnRelationshipBounds(self.token['tokens'])
+			self.relations = self.nounPairIdentifier.returnNounPairsExtracted(relationBounds, self.token['tokens'])
+			# -- remove lie below after initial testing...
+			self.insertRelations()
+			self.tokenCollection.update({'_id':self.token['_id']}, { "$set": {'processed':1}}) #### -- Check this line - then also start work on the document entry module...
 	
+	
+	def seedTokens(self):
+		self.tokenArray = self.tokenCollection.find({'processed':0})
 	
 	def bootstrapAdditionalClasses(self):
 		self.relationIdentify = relation_identifier()
@@ -66,11 +72,11 @@ class relation_extractor:
 		tokenDB = self.connection.tokenDB
 		self.tokenCollection = tokenDB.testTokens
 		
-		relationDB = self.connection.relationDB
-		self.relationCollection = relationDB.testRelations
+		#relationDB = self.connection.relationDB
+		#self.relationCollection = relationDB.testRelations
 		
-		relationGroupDB = self.connection.relationGroupDB
-		self.relationGroupCollection = relationGroupDB.testRelationGroups
+		#relationGroupDB = self.connection.relationGroupDB
+		#self.relationGroupCollection = relationGroupDB.testRelationGroups
 		
 		wordDB = self.connection.wordDB
 		self.wordCollection = wordDB.testWords
@@ -225,7 +231,7 @@ class noun_pair_identifier:
 ###############################################################################################################
 
 
-relationExtract = relation_extractor(True)
+relationExtract = relation_extractor(False)
 for i in range(1):
 	relationExtract.processNextTokens()
 print('done')
