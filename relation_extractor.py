@@ -30,6 +30,12 @@ class relation_extractor:
 				#{'$push':{'relation_id':obj_id }, '$set':{'words':g['words']}}, True)# alternate way to do this...
 				
 				#self.relationGroupCollection.update({'words':[g['words'][0], g['words'][1]], 'words':[g['words'][1], g['words'][0]]}, {'$push':{'relation_id':obj_id }}, True) # update or insert
+				if g['words'][0].lower()[-1] == '.': #escape a period if it's the last character (mongoDB restriction)
+					g['words'][0] = g['words'][0] + '/'
+				
+				if g['words'][1].lower()[-1] == '.':
+					g['words'][1] = g['words'][1] + '/'
+					
 				self.wordCollection.update({'word':g['words'][0].lower()}, {'$inc':{'link.'+g['words'][1].lower(): 1 }}, True)
 				self.wordCollection.update({'word':g['words'][1].lower()}, {'$inc':{'link.'+g['words'][0].lower(): 1 }}, True)
 				

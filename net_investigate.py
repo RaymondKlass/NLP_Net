@@ -9,36 +9,66 @@ class net_investigate:
 	def __init__(self):
 		self.openDBClient()
 		self.word = []
+		self.wordCache = {}
 
 	
 	def investigateWordPair(self, word1, word2):
 		self.seedWord(word1)
 		self.seedWord(word2)
 		
-		self.paths = []
-		self.discoverAllPaths(minScore = .2, cScore = 1, cPath = [self.word[0]], target = self.word[1])
-		#print(self.paths)
+		self.wordPos = {}
+		self.discoverAllPaths(minScore = .000015, cScore = 1, cPath = [self.word[0]['word']], target = self.word[1]['word'])
+		
+		sorted_x = sorted(self.wordPos.iteritems(), key=operator.itemgetter(1), reverse=True)
+
+		for item in sorted_x:
+			print item[0] +' ' + str(item[1])
+
 	
 	
-	def loadWord(self, word):
-		self.seedWord(word)
-		print(self.word[-1])
+	#def loadWord(self, word): 
+	#	if word in self.wordCache:
+	#		return self.wordCache[word]
+	#	else:
+	#		if len(self.wordCache) >= 100000:
+	#			del self.wordCache[self.wordCache.keys()[0]]
+	#		
+	#		self.wordCache[word] = self.wordCollection.find_one({'word':word})
+	#		return self.wordCache[word]
+	
+	def loadWord2(self, word): # utilize mongoDB's caching instead...
+		return self.wordCollection.find_one({'word':word})
 	
 	
-	def discoverAllPaths(self, minScore ,cScore, cPath, target):
-		print(cPath)
-		#print(target)
+	def discoverAllPaths(self, minScore ,cScore, cPath, target): ######  This function needs serious help...
 		
-		if cScore < minScore: #if the min Score ofthe path ever becomes less than the min required - kill that path
-			return false
+		if cScore < minScore:
+			return False
 		
+		currentWord = self.loadWord2(cPath[-1])
 		
-		
-		for link in cPath[-1]['link']:
-			# load a dynamic cache with the word objects - check if the word has been previously navigated to in this path - follow if not - loading from cache if possible - otherwise pull from DB...
-			word = self.loadWord(link)
-			print word
-			#if(link)
+		if not currentWord:
+			return False
+		for link in currentWord['link']:
+
+			if link == target: #means a path has been found...
+				for node in cPath:
+					if node in self.wordPos:
+						self.wordPos[node] = self.wordPos[node] + cScore 
+					else:
+						self.wordPos[node] = cScore
+						
+				return False # return after finding a valid link - but continue to look for others that can be of valid length that connect through the parent node
+
+			else:
+				if link not in cPath: #indicates that this is a path that has not been taken yet...
+					try: # Need to try here because sometimes a word will not have a link
+						newList = cPath[:]
+						newList.append(link)
+						self.discoverAllPaths( minScore, cScore * (currentWord['link'][link]/sum(currentWord['link'].values())), newList , target)
+					except:
+						return False
+			
 			
 	
 	def investigateSingleWord(self, iWord):
@@ -47,7 +77,7 @@ class net_investigate:
 	
 	def sortWordUsage(self, word):
 		sorted_x = sorted(word['link'].iteritems(), key=operator.itemgetter(1), reverse=True)
-		print(sorted_x)
+		print(sorted_x.keys())
 	
 	def seedWord(self, iWord):
 		self.word.append(self.wordCollection.find_one({'word':iWord.lower()}))
@@ -60,4 +90,5 @@ class net_investigate:
 		self.wordCollection = wordDB.testWords
 		
 nI = net_investigate()
-nI.investigateWordPair('house', 'grass')
+#nI.testListCall()
+nI.investigateWordPair('arm', 'tree')
