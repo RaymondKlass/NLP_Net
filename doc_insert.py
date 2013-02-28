@@ -3,26 +3,38 @@ from pymongo import MongoClient
 
 
 
-class doc_insert:
+class nltkHelper:
 
 	def __init__(self):
-		self.openDBClient()
+		self.location = None
+		self.bootstrapSentSplitter()
+		self.bootstrapTokenizer()
 	
-	def saveDoc(self):
-		obj_id = self.docCollection.insert({"locationOnDisk" : self.location, "origin" : self.origin, "processed":0 }) # Insert the document...
-		print(obj_id)
 	
-	def insertTextFile(self, location):
-		self.location = location
-		self.origin = "Manual Text Insert"
-		self.saveDoc()
+	def bootstrapSentSplitter(self):
+		self.sent_tokenizer = nltk.data.load('tokenizers/punkt/english.pickle')
 	
-	def openDBClient(self):
-		self.connection = MongoClient()
+	
+	def bootStrapTokenizer(self):
+		self.tokenize = nltk.word_tokenize
+		self.pos_tag = nltk.pos_tag
+	
+	
+	def insertRaw(self, rawText): # this is the main function to insert new text into the system...
+		self.raw = rawText
 		
-		docDB = self.connection.docDB
-		self.docCollection = docDB.testDocs
-	
+		#Split the document into sentences - for now we assume relatively small files - we'll use streaming for really large files.
+		self.sents = self.sent_tokenizer.tokenize(self.raw)
+		
+		for sent in self.sents:
+			self.tokenized = self.pos_tag(self.tokenize(sent))
+			print(self.tokenized)
 
-doc_inserter = doc_insert()
-doc_inserter.insertTextFile('../../sample_Huckleberry_Finn.txt')
+
+
+
+
+
+	
+nlp = nltkHelper()
+nlp.insertTextFile('hello, this is a sample sentence...')
